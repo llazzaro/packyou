@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
+
+MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 class ImportFromGithub(object):
@@ -7,9 +10,12 @@ class ImportFromGithub(object):
         pass
 
     def find_module(self, fullname, path=None):
-        pass
+        if fullname.startswith('packyou.github'):
+            self.path = path
+            return self
 
     def load_module(self, name):
-        pass
+        print('ACA', name)
+        print('ACA', self.path)
 
-sys.meta_path = [ImportFromGit()]
+sys.meta_path = [ImportFromGithub()]
