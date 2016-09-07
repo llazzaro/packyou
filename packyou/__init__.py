@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
+import sys
 
-__author__ = 'Leonardo Lazzaro'
-__email__ = 'llazzaro@dc.uba.ar'
-__version__ = '0.1.0'
+
+class ImportFromGithub(object):
+    def __init__(self, *args):
+        pass
+
+    def find_module(self, fullname, path=None):
+        pass
+
+    def load_module(self, name):
+        pass
+
+sys.meta_path = [ImportFromGit()]
