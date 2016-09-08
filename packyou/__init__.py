@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import ipdb
 import os
 import imp
 import sys
@@ -40,26 +39,31 @@ class ImportFromGithub:
         repo_url = 'https://github.com/{0}/{1}.git'.format(username, repository_name)
         repository_local_destination = os.path.join(MODULES_PATH, 'github', username, repository_name)
         if not os.path.exists(repository_local_destination):
-            repo = Repo.clone_from(repo_url, repository_local_destination, branch='master')
+            Repo.clone_from(repo_url, repository_local_destination, branch='master')
             init_filename = os.path.join(repository_local_destination, '__init__.py')
             open(init_filename, 'a').close()
         #cloned_repo = repo.clone(os.path.join(MODULES_PATH, 'repository_name'))
 
     def load_module(self, name):
         complete_name = name
-        name = name.split('.')[-1]
-        self.call_number += 1
-        if self.call_number == 1:
+        splitted_names = name.split('.')
+        username = None
+        if len(splitted_names) >= 3:
+            username = splitted_names[splitted_names.index('github') + 1]
+
+        name = splitted_names[-1]
+
+        if len(splitted_names) == 2:
             return self.find_and_load_module('github', complete_name)
-        if self.call_number == 2:
-            self.username = name
+        if len(splitted_names) == 3:
+            os.mkdir(os.path.join(MODULES_PATH, 'github', username))
             username_init_filename = os.path.join(MODULES_PATH, 'github', self.username, '__init__.py')
             open(username_init_filename, 'a').close()
             return self.find_and_load_module(name, complete_name)
-        if self.call_number == 3:
-            self.clone_github_repo(self.username, name)
+        if len(splitted_names) == 4:
+            self.clone_github_repo(username, name)
             return self.find_and_load_module(name, complete_name)
-        if self.call_number >= 4:
+        if len(splitted_names) >= 5:
             return self.find_and_load_module(name, complete_name)
 
 sys.meta_path = [ImportFromGithub()]
