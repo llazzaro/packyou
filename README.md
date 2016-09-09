@@ -1,5 +1,5 @@
 # packyou
-[![Build Status](https://travis-ci.org/llazzaro/packyou.svg?branch=master)](https://travis-ci.org/llazzaro/packyou) [![Code Health](https://landscape.io/github/llazzaro/packyou/master/landscape.svg?style=flat)](https://landscape.io/github/llazzaro/packyou/master)
+[![Build Status](https://travis-ci.org/llazzaro/packyou.svg?branch=master)](https://travis-ci.org/llazzaro/packyou) [![Code Health](https://landscape.io/github/llazzaro/packyou/master/landscape.svg?style=flat)](https://landscape.io/github/llazzaro/packyou/master) [![Coverage Status](https://coveralls.io/repos/github/llazzaro/packyou/badge.svg)](https://coveralls.io/github/llazzaro/packyou)
 
 ## Description
 Downloads a python project from github and allows to import it from anywhere. Very useful when the repo is not a package
