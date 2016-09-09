@@ -21,14 +21,14 @@ class ImportFromGithub:
         }
 
     def find_module(self, fullname, path=None):
-        if fullname.startswith('packyou.github'):
+        if fullname.startswith('packyou'):
             self.path = path
             return self
 
-    def find_and_load_module(self, name, complete_name):
+    def find_and_load_module(self, name, complete_name, path):
         if complete_name in sys.modules:
             return sys.modules[name]
-        module_info = imp.find_module(name, self.path)
+        module_info = imp.find_module(name, path)
         module = imp.load_module(name, *module_info)
         sys.modules[complete_name] = module
         return module
@@ -41,29 +41,40 @@ class ImportFromGithub:
             init_filename = os.path.join(repository_local_destination, '__init__.py')
             open(init_filename, 'a').close()
 
+        self.update_sys_path()
+
+    def update_sys_path(self):
+        github_repos_path = os.path.join(MODULES_PATH, 'github')
+        for file_or_directory in os.walk(github_repos_path):
+            if os.path.isdir(file_or_directory[0]) or os.path.splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
+                sys.path.append(file_or_directory[0])
+
     def load_module(self, name):
         complete_name = name
         splitted_names = name.split('.')
         username = None
-        if len(splitted_names) >= 3:
-            username = splitted_names[splitted_names.index('github') + 1]
+        if 'github' in splitted_names:
+            if len(splitted_names) >= 3:
+                username = splitted_names[splitted_names.index('github') + 1]
 
-        name = splitted_names[-1]
+            name = splitted_names[-1]
 
-        if len(splitted_names) == 2:
-            return self.find_and_load_module('github', complete_name)
-        if len(splitted_names) == 3:
-            username_directory = os.path.join(MODULES_PATH, 'github', username)
-            if not os.path.exists(username_directory):
-                os.mkdir(username_directory)
-            username_init_filename = os.path.join(MODULES_PATH, 'github', username, '__init__.py')
-            open(username_init_filename, 'a').close()
-            return self.find_and_load_module(name, complete_name)
-        if len(splitted_names) == 4:
-            self.clone_github_repo(username, name)
-            return self.find_and_load_module(name, complete_name)
-        if len(splitted_names) >= 5:
-            return self.find_and_load_module(name, complete_name)
+            if len(splitted_names) == 2:
+                self.update_sys_path()
+                return self.find_and_load_module('github', complete_name, self.path)
+            if len(splitted_names) == 3:
+                username_directory = os.path.join(MODULES_PATH, 'github', username)
+                if not os.path.exists(username_directory):
+                    os.mkdir(username_directory)
+                username_init_filename = os.path.join(MODULES_PATH, 'github', username, '__init__.py')
+                open(username_init_filename, 'a').close()
+                return self.find_and_load_module(name, complete_name, self.path)
+            if len(splitted_names) == 4:
+                self.clone_github_repo(username, name)
+                return self.find_and_load_module(name, complete_name, self.path)
+            if len(splitted_names) >= 5:
+                return self.find_and_load_module(name, complete_name, self.path)
 
+        raise ImportError
 
-sys.meta_path = [ImportFromGithub()] + sys.meta_path
+sys.meta_path = sys.meta_path + [ImportFromGithub()]
