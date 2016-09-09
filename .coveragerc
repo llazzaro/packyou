@@ -2,4 +2,4 @@
 source = packyou
 
 [report]
-omit = tests/*,
+omit = tests/*,packyou/github/*
