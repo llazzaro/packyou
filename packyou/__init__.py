@@ -77,4 +77,4 @@ class ImportFromGithub:
 
         raise ImportError
 
-sys.meta_path = sys.meta_path + [ImportFromGithub()]
+sys.meta_path.append(ImportFromGithub())

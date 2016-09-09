@@ -16,7 +16,6 @@ env:
 install:
   - pip install -U tox
   - pip install -r requirements_dev.txt
-  - python setup.py install
 
 # command to run tests, e.g. python setup.py test
 script: tox -e ${TOXENV}
