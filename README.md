@@ -4,6 +4,12 @@
 ## Description
 Downloads a python project from github and allows to import it from anywhere. Very useful when the repo is not a package
 
+## Install
+
+```
+pip install packyou
+```
+
 ## Introduction
 
 Sometimes is usefull to be able to import a project from github.
