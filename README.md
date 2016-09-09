@@ -19,7 +19,20 @@ Some people could be using git submodules, but it also requires adding a __init_
 
 With packyou it is possible to import any pure python project from github justo with a simple import statement like:
 
-"from packyou.github.username.report import external_github_repo"
+```python
+from packyou.github.username.report import external_github_repo
+```
+
+## Example of usage
+
+Supose you want to use something from sqlmap project. since sqlmap proyect is not yet a python package you can import anything from
+sqlmap like this:
+
+```python
+from packyou.github.sqlmapproject.sqlmap.lib.utils.hash import mysql_passwd
+mysql_passwd(password='testpass', uppercase=True)
+# '*00E247AC5F9AF26AE0194B41E1E769DEE1429A29'
+```
 
 * Free software: MIT license
 * Documentation: https://packyou.readthedocs.io.
