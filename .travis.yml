@@ -21,7 +21,6 @@ install:
 script: tox -e ${TOXENV}
 
 script:
-  - coverage run setup.py test
-  - coverage report -m
+  - py.test
 after_success:
   - coveralls --verbose
