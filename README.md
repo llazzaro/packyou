@@ -6,6 +6,9 @@ Downloads a python project from github and allows to import it from anywhere. Ve
 
 ## Demo
 
+![](http://g.recordit.co/uynxKvj8FC.gif)
+
+
 ## Install
 
 ```
