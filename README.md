@@ -6,7 +6,7 @@ Downloads a python project from github and allows to import it from anywhere. Ve
 
 ## Demo
 
-![](http://g.recordit.co/uynxKvj8FC.gif)
+![](https://cloud.githubusercontent.com/assets/568181/18405569/63b0cf9e-76c9-11e6-845e-594101c36136.gif)
 
 
 ## Install
