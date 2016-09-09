@@ -40,7 +40,6 @@ class ImportFromGithub:
             Repo.clone_from(repo_url, repository_local_destination, branch='master')
             init_filename = os.path.join(repository_local_destination, '__init__.py')
             open(init_filename, 'a').close()
-        #cloned_repo = repo.clone(os.path.join(MODULES_PATH, 'repository_name'))
 
     def load_module(self, name):
         complete_name = name
