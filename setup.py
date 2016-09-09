@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -19,15 +19,13 @@ test_requirements = [
 
 setup(
     name='packyou',
-    version='0.1.0',
+    version='0.1.1',
     description="Downloads a python project and allows to import it from anywhere. Very useful when the repo is not a package",
     long_description=readme + '\n\n' + history,
     author="Leonardo Lazzaro",
     author_email='llazzaro@dc.uba.ar',
     url='https://github.com/llazzaro/packyou',
-    packages=[
-        'packyou',
-    ],
+    packages=find_packages(),
     package_dir={'packyou':
                  'packyou'},
     include_package_data=True,
