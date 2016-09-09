@@ -13,8 +13,6 @@ class ImportFromGithub:
         Import hook that will allow to import from a  github repo.
     """
     def __init__(self):
-        self.call_number = 0
-        self.username = None
         self.path = None
         self.call_mapping = {
             1: 'github',
@@ -56,8 +54,10 @@ class ImportFromGithub:
         if len(splitted_names) == 2:
             return self.find_and_load_module('github', complete_name)
         if len(splitted_names) == 3:
-            os.mkdir(os.path.join(MODULES_PATH, 'github', username))
-            username_init_filename = os.path.join(MODULES_PATH, 'github', self.username, '__init__.py')
+            username_directory = os.path.join(MODULES_PATH, 'github', username)
+            if not os.path.exists(username_directory):
+                os.mkdir(username_directory)
+            username_init_filename = os.path.join(MODULES_PATH, 'github', username, '__init__.py')
             open(username_init_filename, 'a').close()
             return self.find_and_load_module(name, complete_name)
         if len(splitted_names) == 4:
@@ -66,4 +66,5 @@ class ImportFromGithub:
         if len(splitted_names) >= 5:
             return self.find_and_load_module(name, complete_name)
 
-sys.meta_path = [ImportFromGithub()]
+
+sys.meta_path = [ImportFromGithub()] + sys.meta_path
