@@ -4,6 +4,8 @@
 ## Description
 Downloads a python project from github and allows to import it from anywhere. Very useful when the repo is not a package
 
+## Demo
+
 ## Install
 
 ```
@@ -33,6 +35,8 @@ from packyou.github.sqlmapproject.sqlmap.lib.utils.hash import mysql_passwd
 mysql_passwd(password='testpass', uppercase=True)
 # '*00E247AC5F9AF26AE0194B41E1E769DEE1429A29'
 ```
+
+screenshot!
 
 * Free software: MIT license
 * Documentation: https://packyou.readthedocs.io.
