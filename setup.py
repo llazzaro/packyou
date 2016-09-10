@@ -4,24 +4,24 @@
 from setuptools import setup, find_packages
 
 with open('README.md') as readme_file:
-    readme = readme_file.read()
+    README = readme_file.read()
 
 with open('HISTORY.rst') as history_file:
-    history = history_file.read()
+    HISTORY = history_file.read()
 
-requirements = [
+REQUIREMENTS = [
     'gitpython',
 ]
 
-test_requirements = [
+TEST_REQUIREMENTS = [
     'pytest',
 ]
 
 setup(
     name='packyou',
-    version='0.1.2',
-    description="Downloads a python project and allows to import it from anywhere. Very useful when the repo is not a package",
-    long_description=readme + '\n\n' + history,
+    version='0.1.3',
+    description="Downloads or clones a python project from github and allows to import it from anywhere. Very useful when the repo is not a package",
+    long_description=README + '\n\n' + HISTORY,
     author="Leonardo Lazzaro",
     author_email='llazzaro@dc.uba.ar',
     url='https://github.com/llazzaro/packyou',
@@ -29,7 +29,7 @@ setup(
     package_dir={'packyou':
                  'packyou'},
     include_package_data=True,
-    install_requires=requirements,
+    install_requires=REQUIREMENTS,
     license="MIT license",
     zip_safe=False,
     keywords='packyou',
@@ -47,5 +47,5 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
     test_suite='tests',
-    tests_require=test_requirements
+    tests_require=TEST_REQUIREMENTS,
 )
