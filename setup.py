@@ -19,7 +19,7 @@ test_requirements = [
 
 setup(
     name='packyou',
-    version='0.1.1',
+    version='0.1.2',
     description="Downloads a python project and allows to import it from anywhere. Very useful when the repo is not a package",
     long_description=readme + '\n\n' + history,
     author="Leonardo Lazzaro",
