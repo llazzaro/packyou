@@ -9,12 +9,6 @@ Downloads a python project from github and allows to import it from anywhere. Ve
 ![](https://cloud.githubusercontent.com/assets/568181/18405569/63b0cf9e-76c9-11e6-845e-594101c36136.gif)
 
 
-## Install
-
-```
-pip install packyou
-```
-
 ## Introduction
 
 Sometimes is usefull to be able to import a project from github.
@@ -25,7 +19,13 @@ Some people could be using git submodules, but it also requires adding a __init_
 With packyou it is possible to import any pure python project from github justo with a simple import statement like:
 
 ```python
-from packyou.github.username.report import external_github_repo
+from packyou.github.username.repository_name import external_github_module
+```
+
+## Install
+
+```
+pip install packyou
 ```
 
 ## Example of usage
