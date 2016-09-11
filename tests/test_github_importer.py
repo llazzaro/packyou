@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from pytest import raises
 from mock import patch
 
 from packyou import ImportFromGithub
@@ -52,8 +53,8 @@ def test_second_level_of_import_name(imp_load_module, imp_find_module_mock, sys_
     importer = ImportFromGithub()
     module = importer.load_module('packyou.github.github_username')
 
-    assert 'packyou/packyou/github/github_username/__init__.py' in open_mock.mock_calls[0][1][0]
-    assert 'packyou/packyou/github/github_username' in mkdir_mock.mock_calls[0][1][0]
+    assert 'packyou/github/github_username/__init__.py' in open_mock.mock_calls[0][1][0]
+    assert 'packyou/github/github_username' in mkdir_mock.mock_calls[0][1][0]
     assert imp_find_module_mock.mock_calls[0][1] == ('github_username', None)
     assert module == 'mocked_module'
     assert sys_modules_mock['packyou.github.github_username'] == 'mocked_module'
@@ -78,9 +79,24 @@ def test_third_level_of_import_name(imp_load_module, imp_find_module_mock, sys_m
     imp_load_module.return_value = 'mocked_module'
     importer = ImportFromGithub()
     module = importer.load_module('packyou.github.github_username.test_repo')
-    assert 'packyou/packyou/github/github_username/test_repo/__init__.py' in open_mock.mock_calls[0][1][0]
+    assert 'packyou/github/github_username/test_repo/__init__.py' in open_mock.mock_calls[0][1][0]
     assert repo_mock.mock_calls[0][1][0] == 'https://github.com/github_username/test_repo.git'
-    assert 'packyou/packyou/github/github_username/test_repo' in repo_mock.mock_calls[0][1][1]
+    assert 'packyou/github/github_username/test_repo' in repo_mock.mock_calls[0][1][1]
     assert imp_find_module_mock.mock_calls[0][1] == ('test_repo', None)
     assert module == 'mocked_module'
     assert sys_modules_mock['packyou.github.github_username.test_repo'] == 'mocked_module'
+
+
+def test_raise_import_error_when_load_module_is_called_without_github():
+    importer = ImportFromGithub()
+    with raises(ImportError):
+        importer.load_module('os.path')
+
+
+def test_import_something_already_cloned():
+    importer = ImportFromGithub()
+    # this call will clone the repo
+    module = importer.load_module('packyou.github.llazzaro.test_scripts.test')
+    # this call will reuse the cloned repo
+    module = importer.load_module('packyou.github.llazzaro.test_scripts.test')
+    assert 'function1' in dir(module)
