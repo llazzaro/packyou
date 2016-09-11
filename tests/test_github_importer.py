@@ -91,12 +91,3 @@ def test_raise_import_error_when_load_module_is_called_without_github():
     importer = ImportFromGithub()
     with raises(ImportError):
         importer.load_module('os.path')
-
-
-def test_import_something_already_cloned():
-    importer = ImportFromGithub()
-    # this call will clone the repo
-    module = importer.load_module('packyou.github.llazzaro.test_scripts.test')
-    # this call will reuse the cloned repo
-    module = importer.load_module('packyou.github.llazzaro.test_scripts.test')
-    assert 'function1' in dir(module)
