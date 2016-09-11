@@ -58,7 +58,8 @@ class ImportFromGithub(object):
         github_repos_path = os.path.join(MODULES_PATH, 'github')
         for file_or_directory in os.walk(github_repos_path):
             if os.path.isdir(file_or_directory[0]) or os.path.splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
-                sys.path.append(file_or_directory[0])
+                if file_or_directory[0] not in sys.path:
+                    sys.path.append(file_or_directory[0])
 
     def load_module(self, name):
         """
@@ -69,9 +70,15 @@ class ImportFromGithub(object):
         complete_name = name
         splitted_names = name.split('.')
         username = None
+        repository_name = None
         if 'github' in splitted_names:
             if len(splitted_names) >= 3:
                 username = splitted_names[splitted_names.index('github') + 1]
+            if len(splitted_names) >= 4:
+                repository_name = splitted_names[splitted_names.index('github') + 2]
+
+            if username and repository_name:
+                self.clone_github_repo(username, repository_name)
 
             name = splitted_names[-1]
 
@@ -86,7 +93,6 @@ class ImportFromGithub(object):
                 open(username_init_filename, 'a').close()
                 return self.find_and_load_module(name, complete_name, self.path)
             if len(splitted_names) == 4:
-                self.clone_github_repo(username, name)
                 return self.find_and_load_module(name, complete_name, self.path)
             if len(splitted_names) >= 5:
                 return self.find_and_load_module(name, complete_name, self.path)
