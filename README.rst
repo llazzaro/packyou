@@ -66,5 +66,7 @@ screenshot!
    :target: https://travis-ci.org/llazzaro/packyou
 .. |Code Health| image:: https://landscape.io/github/llazzaro/packyou/master/landscape.svg?style=flat
    :target: https://landscape.io/github/llazzaro/packyou/master
-.. |Coverage Status| image:: https://coveralls.io/repos/github/llazzaro/packyou/badge.svg
-   :target: https://coveralls.io/github/llazzaro/packyou
+.. |Coverage Status| image:: https://coveralls.io/repos/github/llazzaro/packyou/badge.svg?branch=master
+:target: https://coveralls.io/github/llazzaro/packyou?branch=master
+
+
