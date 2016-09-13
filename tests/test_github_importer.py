@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from pytest import raises
 from mock import Mock, patch
 
 from packyou import ImportFromGithub
@@ -83,3 +84,90 @@ def test_third_level_of_import_name(requests_mock, path_finder_mock, sys_modules
     assert 'packyou/github/github_username/test_repo' in repo_mock.mock_calls[0][1][1]
     assert path_finder_mock.mock_calls[0][1] == ('packyou.github.github_username.test_repo', )
     assert requests_mock.mock_calls[0][1][0] == 'https://github.com/github_username/test_repo.git'
+
+
+@patch('packyou.open')
+@patch('packyou.PathFinder')
+@patch('packyou.requests')
+@patch('packyou.Repo')
+def test_check_repo_exists_username_with_dash(repo_mock, requests_mock, path_finder_mock, open_mock):
+    urls = []
+
+    def get_side_effect(url):
+        urls.append(url)
+        mocked_response = Mock()
+        mocked_response.status_code = 404
+        if 'github-username' in url:
+            mocked_response.status_code = 200
+        return mocked_response
+
+    requests_mock.get = get_side_effect
+
+    importer = ImportFromGithub()
+    importer.load_module('packyou.github.github_username.test_repo')
+    assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git'])
+
+
+
+@patch('packyou.open')
+@patch('packyou.PathFinder')
+@patch('packyou.requests')
+@patch('packyou.Repo')
+def test_check_repo_exists_repository_name_with_dash(repo_mock, requests_mock, path_finder_mock, open_mock):
+    urls = []
+
+    def get_side_effect(url):
+        urls.append(url)
+        mocked_response = Mock()
+        mocked_response.status_code = 404
+        if 'test-repo' in url:
+            mocked_response.status_code = 200
+        return mocked_response
+
+    requests_mock.get = get_side_effect
+
+    importer = ImportFromGithub()
+    importer.load_module('packyou.github.github_username.test_repo')
+    assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git', 'https://github.com/github_username/test-repo.git'])
+
+
+@patch('packyou.open')
+@patch('packyou.PathFinder')
+@patch('packyou.requests')
+@patch('packyou.Repo')
+def test_repo_does_not_exists(repo_mock, requests_mock, path_finder_mock, open_mock):
+    urls = []
+
+    def get_side_effect(url):
+        urls.append(url)
+        mocked_response = Mock()
+        mocked_response.status_code = 404
+        return mocked_response
+
+    requests_mock.get = get_side_effect
+
+    importer = ImportFromGithub()
+    with raises(ImportError):
+        importer.load_module('packyou.github.github_username.test_repo')
+
+
+@patch('packyou.open')
+@patch('packyou.PathFinder')
+@patch('packyou.requests')
+@patch('packyou.Repo')
+def test_check_repo_exists_username_and_repository_name_with_dash(repo_mock, requests_mock, path_finder_mock, open_mock):
+    urls = []
+
+    def get_side_effect(url):
+        urls.append(url)
+        mocked_response = Mock()
+        mocked_response.status_code = 404
+        if 'test-repo' in url and 'github-username' in url:
+            mocked_response.status_code = 200
+        return mocked_response
+
+    requests_mock.get = get_side_effect
+
+    importer = ImportFromGithub()
+    importer.load_module('packyou.github.github_username.test_repo')
+    assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git', 'https://github.com/github_username/test-repo.git', 'https://github.com/github-username/test-repo.git'])
