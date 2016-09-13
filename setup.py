@@ -11,6 +11,7 @@ with open('HISTORY.rst') as history_file:
 
 REQUIREMENTS = [
     'gitpython',
+    'requests',
 ]
 
 TEST_REQUIREMENTS = [
