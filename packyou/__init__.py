@@ -25,7 +25,7 @@ class ImportFromGithub(object):
         self.path = path
         return self
 
-    def find_and_load_module(self, name, complete_name, path):
+    def find_and_load_module(self, complete_name):
         """
             Given a name and a path it will return a module instance
             if found.
@@ -91,7 +91,6 @@ class ImportFromGithub(object):
             if os.path.isdir(file_or_directory[0]) or os.path.splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
                 if file_or_directory[0] not in sys.path:
                     sys.path.append(file_or_directory[0])
-#                    self.find_and_load_module(name, complete_name, path)
 
     def load_module(self, name):
         """
@@ -115,20 +114,20 @@ class ImportFromGithub(object):
 
             if len(splitted_names) == 2:
                 self.update_sys_path()
-                return self.find_and_load_module('github', complete_name, self.path)
+                return self.find_and_load_module(complete_name)
             if len(splitted_names) == 3:
                 username_directory = os.path.join(MODULES_PATH, 'github', username)
                 if not os.path.exists(username_directory):
                     os.mkdir(username_directory)
                 username_init_filename = os.path.join(MODULES_PATH, 'github', username, '__init__.py')
                 open(username_init_filename, 'a').close()
-                return self.find_and_load_module(name, complete_name, self.path)
+                return self.find_and_load_module(complete_name)
             if len(splitted_names) >= 4:
-                return self.find_and_load_module(name, complete_name, self.path)
+                return self.find_and_load_module(complete_name)
 
         else:
             self.update_sys_path()
-            module = self.find_and_load_module(name, complete_name, self.path or sys.path)
+            module = self.find_and_load_module(complete_name)
             if not module:
                 raise ImportError
             return module
