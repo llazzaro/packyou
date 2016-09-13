@@ -108,7 +108,6 @@ def test_check_repo_exists_username_with_dash(repo_mock, requests_mock, path_fin
     assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git'])
 
 
-
 @patch('packyou.open')
 @patch('packyou.PathFinder')
 @patch('packyou.requests')
@@ -171,3 +170,22 @@ def test_check_repo_exists_username_and_repository_name_with_dash(repo_mock, req
     importer = ImportFromGithub()
     importer.load_module('packyou.github.github_username.test_repo')
     assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git', 'https://github.com/github_username/test-repo.git', 'https://github.com/github-username/test-repo.git'])
+
+
+def test_invalid_import():
+    importer = ImportFromGithub()
+    with raises(ImportError):
+        importer.load_module('os.mkdir')
+
+
+def test_valid_imports_can_be_imported():
+    importer = ImportFromGithub()
+    module = importer.load_module('os.path')
+    'split' in dir(module)
+
+
+def test_find_module():
+    importer = ImportFromGithub()
+    module_loader = importer.find_module('pepe.pepe', 'path')
+    assert module_loader == importer
+    assert module_loader.path == 'path'

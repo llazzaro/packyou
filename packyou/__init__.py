@@ -123,9 +123,7 @@ class ImportFromGithub(object):
                 username_init_filename = os.path.join(MODULES_PATH, 'github', username, '__init__.py')
                 open(username_init_filename, 'a').close()
                 return self.find_and_load_module(name, complete_name, self.path)
-            if len(splitted_names) == 4:
-                return self.find_and_load_module(name, complete_name, self.path)
-            if len(splitted_names) >= 5:
+            if len(splitted_names) >= 4:
                 return self.find_and_load_module(name, complete_name, self.path)
 
         else:
@@ -134,8 +132,6 @@ class ImportFromGithub(object):
             if not module:
                 raise ImportError
             return module
-
-        raise ImportError
 
 
 sys.meta_path.append(ImportFromGithub())
