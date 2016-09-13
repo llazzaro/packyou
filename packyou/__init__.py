@@ -103,6 +103,7 @@ class ImportFromGithub(object):
         username = None
         repository_name = None
         name = splitted_names[-1]
+        self.update_sys_path()
         if 'github' in splitted_names:
             if len(splitted_names) >= 3:
                 username = splitted_names[splitted_names.index('github') + 1]
@@ -113,7 +114,6 @@ class ImportFromGithub(object):
                 self.clone_github_repo(username, repository_name)
 
             if len(splitted_names) == 2:
-                self.update_sys_path()
                 return self.find_and_load_module(complete_name)
             if len(splitted_names) == 3:
                 username_directory = os.path.join(MODULES_PATH, 'github', username)
@@ -126,7 +126,6 @@ class ImportFromGithub(object):
                 return self.find_and_load_module(complete_name)
 
         else:
-            self.update_sys_path()
             module = self.find_and_load_module(complete_name)
             if not module:
                 raise ImportError
