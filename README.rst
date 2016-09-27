@@ -57,16 +57,18 @@ screenshot!
 -  Free software: MIT license
 -  Documentation: https://packyou.readthedocs.io.
 
-## Features
+TODO
 -----------
-
--  Add support for bitbucket, gitlab
+- Add support for bitbucket, gitlab
+- Specify version of each project
 
 .. |Build Status| image:: https://travis-ci.org/llazzaro/packyou.svg?branch=master
    :target: https://travis-ci.org/llazzaro/packyou
 .. |Code Health| image:: https://landscape.io/github/llazzaro/packyou/master/landscape.svg?style=flat
    :target: https://landscape.io/github/llazzaro/packyou/master
 .. |Coverage Status| image:: https://coveralls.io/repos/github/llazzaro/packyou/badge.svg?branch=master
-:target: https://coveralls.io/github/llazzaro/packyou?branch=master
+   :target: https://coveralls.io/github/llazzaro/packyou?branch=master
+
+
 
 
