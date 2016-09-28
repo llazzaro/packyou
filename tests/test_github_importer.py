@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import sys
 from pytest import raises
 from mock import Mock, patch
 
-from packyou import ImportFromGithub
+from packyou import GithubMetaPathFinder
 
 
 @patch('sys.modules')
@@ -20,7 +21,7 @@ def test_first_level_of_import_name(requests_mock, path_finder_mock, sys_modules
 
     sys_modules_mock.__getitem__.side_effect = getitem
     sys_modules_mock.__setitem__.side_effect = setitem
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
 
     mocked_response = Mock()
     mocked_response.status_code = 200
@@ -48,7 +49,7 @@ def test_second_level_of_import_name(path_finder_mock, sys_modules_mock, mkdir_m
 
     sys_modules_mock.__getitem__.side_effect = getitem
     sys_modules_mock.__setitem__.side_effect = setitem
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     importer.load_module('packyou.github.github_username')
 
     assert 'packyou/github/github_username/__init__.py' in open_mock.mock_calls[0][1][0]
@@ -72,7 +73,7 @@ def test_third_level_of_import_name(requests_mock, path_finder_mock, sys_modules
 
     sys_modules_mock.__getitem__.side_effect = getitem
     sys_modules_mock.__setitem__.side_effect = setitem
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
 
     mocked_response = Mock()
     mocked_response.status_code = 200
@@ -103,7 +104,7 @@ def test_check_repo_exists_username_with_dash(repo_mock, requests_mock, path_fin
 
     requests_mock.get = get_side_effect
 
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     importer.load_module('packyou.github.github_username.test_repo')
     assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git'])
 
@@ -125,7 +126,7 @@ def test_check_repo_exists_repository_name_with_dash(repo_mock, requests_mock, p
 
     requests_mock.get = get_side_effect
 
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     importer.load_module('packyou.github.github_username.test_repo')
     assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git', 'https://github.com/github_username/test-repo.git'])
 
@@ -145,7 +146,7 @@ def test_repo_does_not_exists(repo_mock, requests_mock, path_finder_mock, open_m
 
     requests_mock.get = get_side_effect
 
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     with raises(ImportError):
         importer.load_module('packyou.github.github_username.test_repo')
 
@@ -167,25 +168,38 @@ def test_check_repo_exists_username_and_repository_name_with_dash(repo_mock, req
 
     requests_mock.get = get_side_effect
 
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     importer.load_module('packyou.github.github_username.test_repo')
     assert set(urls) == set(['https://github.com/github_username/test_repo.git', 'https://github.com/github-username/test_repo.git', 'https://github.com/github_username/test-repo.git', 'https://github.com/github-username/test-repo.git'])
 
 
 def test_invalid_import():
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     with raises(ImportError):
         importer.load_module('os.mkdir')
 
 
 def test_valid_imports_can_be_imported():
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     module = importer.load_module('os.path')
     'split' in dir(module)
 
 
 def test_find_module():
-    importer = ImportFromGithub()
+    importer = GithubMetaPathFinder()
     module_loader = importer.find_module('pepe.pepe', 'path')
     assert module_loader == importer
     assert module_loader.path == 'path'
+
+
+@patch('os.listdir')
+@patch('os.path.isdir')
+def test_sys_path_populate_only_add_root_path(mock_isdir, mocked_listdir):
+    installed_projects = ['reverse_shell', 'sqlmapproject', '__pycache__', '__init__.py', 'karpathy']
+    mock_isdir.return_value = True
+    mocked_listdir.return_value = installed_projects
+    importer = GithubMetaPathFinder()
+
+    importer.update_sys_path()
+    for installed_project in installed_projects:
+        assert installed_project in sys.path

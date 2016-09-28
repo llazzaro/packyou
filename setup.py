@@ -20,7 +20,7 @@ TEST_REQUIREMENTS = [
 
 setup(
     name='packyou',
-    version='0.1.5',
+    version='0.1.6',
     description="Downloads or clones a python project from github and allows to import it from anywhere. Very useful when the repo is not a package",
     long_description=README + '\n\n' + HISTORY,
     author="Leonardo Lazzaro",
