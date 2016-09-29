@@ -1,44 +1,52 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-from importlib.machinery import PathFinder
+import imp
+import pdb
 
 import requests
 
 from git import Repo
+from packyou.utils import get_filename, get_source
 
 MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-class ImportFromGithub(object):
+class GithubLoader(object):
     """
         Import hook that will allow to import from a  github repo.
     """
-    def __init__(self):
-        self.path = None
-
-    def find_module(self, fullname, path=None):
-        """
-            Finds a module and returns a module loader when
-            the import uses packyou
-        """
+    def __init__(self, path=None):
         self.path = path
-        return self
 
-    def find_and_load_module(self, complete_name):
+    def is_package(self, fullname):
+        filename = get_filename(fullname)
+        return os.path.isdir(filename)
+
+    def get_or_create_module(self, fullname):
         """
             Given a name and a path it will return a module instance
             if found.
             When the module could not be found it will raise ImportError
         """
-        if complete_name in sys.modules:
-            return sys.modules[complete_name]
-        module = None
-        module_spec = PathFinder.find_spec(complete_name)
-        if module_spec:
-            loader = module_spec.loader
-            module = loader.load_module()
-            sys.modules[complete_name] = module
+        if fullname in sys.modules:
+            return sys.modules[fullname]
+        module = sys.modules.setdefault(fullname, imp.new_module(fullname))
+
+        # required by PEP 302
+        module.__file__ = get_filename(fullname)
+        module.__name__ = fullname
+        module.__path__ = self.path
+        module.__loader__ = self
+        module.__package__ = '.'.join(fullname.split('.')[:-1])
+        if self.is_package(fullname):
+            module.__path__ = [self.path]
+        try:
+            source = get_source(fullname)
+        except IOError:
+            raise ImportError
+        exec source in module.__dict__
+
         return module
 
     def check_repository_available(self, username, repository_name):
@@ -114,22 +122,32 @@ class ImportFromGithub(object):
                 self.clone_github_repo(username, repository_name)
 
             if len(splitted_names) == 2:
-                return self.find_and_load_module(complete_name)
+                return self.get_or_create_module(complete_name)
             if len(splitted_names) == 3:
                 username_directory = os.path.join(MODULES_PATH, 'github', username)
                 if not os.path.exists(username_directory):
                     os.mkdir(username_directory)
                 username_init_filename = os.path.join(MODULES_PATH, 'github', username, '__init__.py')
                 open(username_init_filename, 'a').close()
-                return self.find_and_load_module(complete_name)
+                return self.get_or_create_module(complete_name)
             if len(splitted_names) >= 4:
-                return self.find_and_load_module(complete_name)
+                return self.get_or_create_module(complete_name)
 
         else:
-            module = self.find_and_load_module(complete_name)
+            module = self.get_or_create_module(complete_name)
             if not module:
                 raise ImportError
             return module
 
 
-sys.meta_path.append(ImportFromGithub())
+class GithubFinder(object):
+
+    def find_module(self, fullname, path=None):
+        """
+            Finds a module and returns a module loader when
+            the import uses packyou
+        """
+        return GithubLoader(path)
+
+
+sys.meta_path.append(GithubFinder())
