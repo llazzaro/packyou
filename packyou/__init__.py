@@ -4,10 +4,11 @@ import sys
 import imp
 import pdb
 
+import encodings.idna
 import requests
 
 from git import Repo
-from packyou.utils import get_filename, get_source
+from packyou.utils import TQDMCloneProgress, get_filename, get_source
 
 MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,10 +44,10 @@ class GithubLoader(object):
             module.__path__ = [self.path]
         try:
             source = get_source(fullname)
-        except IOError:
-            raise ImportError
+        except IOError as ex:
+            pdb.set_trace()
+            raise ImportError('File not found {0}'.format(get_filename(fullname)))
         exec source in module.__dict__
-
         return module
 
     def check_repository_available(self, username, repository_name):
@@ -147,7 +148,9 @@ class GithubFinder(object):
             Finds a module and returns a module loader when
             the import uses packyou
         """
-        return GithubLoader(path)
-
+        if 'packyou.github' in fullname:
+            return GithubLoader(path)
+        else:
+            raise ImportError
 
 sys.meta_path.append(GithubFinder())
