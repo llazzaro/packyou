@@ -33,6 +33,12 @@ def get_filename(fullname):
 
 def get_source(fullname):
     filename = get_filename(fullname)
-
+    if os.path.isdir(filename):
+        filename = os.path.join(filename, '__init__.py')
     with open(filename, 'r') as source_file:
         return source_file.read()
+
+
+def get_code(fullname):
+    source = get_source(fullname)
+    return compile(source, get_filename(fullname), 'exec', dont_inherit=True)
