@@ -103,7 +103,12 @@ class GithubLoader(object):
             This was required since cloned project uses relative imports.
         """
         github_repos_path = join(MODULES_PATH, 'github')
+        base_depth = github_repos_path.split('/').index('github')
         for file_or_directory in walk(github_repos_path):
+            directories = file_or_directory[0].split('/')
+            depth = directories.index(directories[-1])
+            if depth - base_depth > 2:
+                continue
             if isdir(file_or_directory[0]) or splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
                 if file_or_directory[0] not in path:
                     path.append(file_or_directory[0])
