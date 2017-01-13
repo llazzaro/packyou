@@ -1,10 +1,10 @@
-import os
 import pdb
+from os.path import isdir, join, dirname, abspath
 
 from tqdm import tqdm
 from git import RemoteProgress
 
-MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
+MODULES_PATH = dirname(abspath(__file__))
 
 
 class TQDMCloneProgress(RemoteProgress):
@@ -22,9 +22,9 @@ class TQDMCloneProgress(RemoteProgress):
 
 def get_filename(fullname):
     fullname_parts = fullname.split('.')[1:]
-    filename = os.path.join(MODULES_PATH, '/'.join(fullname_parts))
-    if os.path.isdir(filename):
-        filename = os.path.join(filename, '__init__.py')
+    filename = join(MODULES_PATH, '/'.join(fullname_parts))
+    if isdir(filename):
+        filename = join(filename, '__init__.py')
     else:
         if not filename.endswith('py'):
             filename = '{0}.py'.format(filename)
@@ -33,8 +33,6 @@ def get_filename(fullname):
 
 def get_source(fullname):
     filename = get_filename(fullname)
-    if os.path.isdir(filename):
-        filename = os.path.join(filename, '__init__.py')
     with open(filename, 'r') as source_file:
         return source_file.read()
 

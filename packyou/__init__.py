@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
-import os
-import sys
+from sys import modules, path
 import imp
-import pdb
+from os import walk, mkdir
+from os.path import (
+    isdir,
+    abspath,
+    dirname,
+    exists,
+    join,
+    splitext
+)
 
-import encodings.idna
+# import encodings.idna
 import requests
 
 from git import Repo
-from packyou.utils import TQDMCloneProgress, get_filename, get_source
+from packyou.utils import get_filename, get_source
 
-MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
+MODULES_PATH = dirname(abspath(__file__))
 
 
 class GithubLoader(object):
@@ -22,7 +29,7 @@ class GithubLoader(object):
 
     def is_package(self, fullname):
         filename = get_filename(fullname)
-        return os.path.isdir(filename)
+        return not exists(filename) or isdir(filename)
 
     def get_or_create_module(self, fullname):
         """
@@ -30,9 +37,9 @@ class GithubLoader(object):
             if found.
             When the module could not be found it will raise ImportError
         """
-        if fullname in sys.modules:
-            return sys.modules[fullname]
-        module = sys.modules.setdefault(fullname, imp.new_module(fullname))
+        if fullname in modules:
+            return modules[fullname]
+        module = modules.setdefault(fullname, imp.new_module(fullname))
 
         # required by PEP 302
         module.__file__ = get_filename(fullname)
@@ -44,10 +51,10 @@ class GithubLoader(object):
             module.__path__ = [self.path]
         try:
             source = get_source(fullname)
-        except IOError as ex:
-            pdb.set_trace()
+        except IOError:
             raise ImportError('File not found {0}'.format(get_filename(fullname)))
         exec source in module.__dict__
+        modules[fullname] = module
         return module
 
     def check_repository_available(self, username, repository_name):
@@ -82,10 +89,10 @@ class GithubLoader(object):
             Clones a github repo with a username and repository_name
         """
         repo_url = self.check_repository_available(username, repository_name)
-        repository_local_destination = os.path.join(MODULES_PATH, 'github', username, repository_name)
-        if not os.path.exists(repository_local_destination):
+        repository_local_destination = join(MODULES_PATH, 'github', username, repository_name)
+        if not exists(repository_local_destination):
             Repo.clone_from(repo_url, repository_local_destination, branch='master')
-            init_filename = os.path.join(repository_local_destination, '__init__.py')
+            init_filename = join(repository_local_destination, '__init__.py')
             open(init_filename, 'a').close()
 
         self.update_sys_path()
@@ -95,11 +102,11 @@ class GithubLoader(object):
             Iterates over all cloned repos and add them to the syspath.
             This was required since cloned project uses relative imports.
         """
-        github_repos_path = os.path.join(MODULES_PATH, 'github')
-        for file_or_directory in os.walk(github_repos_path):
-            if os.path.isdir(file_or_directory[0]) or os.path.splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
-                if file_or_directory[0] not in sys.path:
-                    sys.path.append(file_or_directory[0])
+        github_repos_path = join(MODULES_PATH, 'github')
+        for file_or_directory in walk(github_repos_path):
+            if isdir(file_or_directory[0]) or splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
+                if file_or_directory[0] not in path:
+                    path.append(file_or_directory[0])
 
     def load_module(self, name):
         """
@@ -125,10 +132,10 @@ class GithubLoader(object):
             if len(splitted_names) == 2:
                 return self.get_or_create_module(complete_name)
             if len(splitted_names) == 3:
-                username_directory = os.path.join(MODULES_PATH, 'github', username)
-                if not os.path.exists(username_directory):
-                    os.mkdir(username_directory)
-                username_init_filename = os.path.join(MODULES_PATH, 'github', username, '__init__.py')
+                username_directory = join(MODULES_PATH, 'github', username)
+                if not exists(username_directory):
+                    mkdir(username_directory)
+                username_init_filename = join(MODULES_PATH, 'github', username, '__init__.py')
                 open(username_init_filename, 'a').close()
                 return self.get_or_create_module(complete_name)
             if len(splitted_names) >= 4:
@@ -153,4 +160,4 @@ class GithubFinder(object):
         else:
             raise ImportError
 
-sys.meta_path.append(GithubFinder())
+# sys.meta_path.append(GithubFinder())
