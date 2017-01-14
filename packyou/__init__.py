@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-from sys import modules, path
 import imp
+import pdb
+
+from sys import modules, path, meta_path
 from os import walk, mkdir
 from os.path import (
     isdir,
@@ -11,7 +13,7 @@ from os.path import (
     splitext
 )
 
-# import encodings.idna
+import encodings.idna
 import requests
 
 from git import Repo
@@ -37,8 +39,12 @@ class GithubLoader(object):
             if found.
             When the module could not be found it will raise ImportError
         """
+
         if fullname in modules:
             return modules[fullname]
+        package = '.'.join(fullname.split('.')[:-1])
+        if package in modules:
+            return modules[package]
         module = modules.setdefault(fullname, imp.new_module(fullname))
 
         # required by PEP 302
@@ -46,13 +52,14 @@ class GithubLoader(object):
         module.__name__ = fullname
         module.__path__ = self.path
         module.__loader__ = self
-        module.__package__ = '.'.join(fullname.split('.')[:-1])
+        module.__package__ = package
         if self.is_package(fullname):
             module.__path__ = [self.path]
         try:
             source = get_source(fullname)
         except IOError:
             raise ImportError('File not found {0}'.format(get_filename(fullname)))
+
         exec source in module.__dict__
         modules[fullname] = module
         return module
@@ -107,11 +114,13 @@ class GithubLoader(object):
         for file_or_directory in walk(github_repos_path):
             directories = file_or_directory[0].split('/')
             depth = directories.index(directories[-1])
-            if depth - base_depth > 2:
-                continue
-            if isdir(file_or_directory[0]) or splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
-                if file_or_directory[0] not in path:
-                    path.append(file_or_directory[0])
+            # add .git and __pycache__
+            if file_or_directory[0] not in path and depth - base_depth > 3:
+                path.append(file_or_directory[0])
+
+            print(file_or_directory[0])
+            if splitext(file_or_directory[0])[1] in ['.py', '.pyc']:
+                pdb.set_trace()
 
     def load_module(self, name):
         """
@@ -147,6 +156,7 @@ class GithubLoader(object):
                 return self.get_or_create_module(complete_name)
 
         else:
+            # Here we try to load a module that has a relative import.
             module = self.get_or_create_module(complete_name)
             if not module:
                 raise ImportError
@@ -165,4 +175,4 @@ class GithubFinder(object):
         else:
             raise ImportError
 
-# sys.meta_path.append(GithubFinder())
+meta_path.append(GithubFinder())
