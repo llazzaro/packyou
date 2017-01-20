@@ -5,7 +5,7 @@ import ipdb
 import glob
 
 from importlib.machinery import ModuleSpec
-from importlib.abc import FileLoader
+from importlib.abc import SourceLoader
 
 from git import Repo
 
@@ -16,15 +16,13 @@ MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
 GITHUB_REPOSITORIES_DIRECTORY = os.path.join(MODULES_PATH, 'github')
 
 
-class GithubLoader(FileLoader):
+class GithubLoader(SourceLoader):
 
     def __init__(self, fullname, path, repo_url=None):
         self.name = fullname
-        self.path = path
+        if path:
+            self.path = path[0]
         self.repo_url = repo_url
-
-#    def exec_module(self, module):
-#        super().exec_module(module)
 
     def clone_github_repo(self, username, repository_name):
         """
@@ -36,27 +34,24 @@ class GithubLoader(FileLoader):
             init_filename = os.path.join(repository_local_destination, '__init__.py')
             open(init_filename, 'a').close()
 
-    def get_source(self, source_filename):
-        source = ''
-        with open(source_filename, 'r') as source_file:
-            source = source_file.read()
-        return source
+    def get_data(self, path):
+        print('get data', path)
+        with open(path, 'r') as data_file:
+            return data_file.read()
 
-    def get_code(self, pepe):
-        source_path = self.path
-        if self.name in os.listdir(self.path):
-            source_path = os.path.join(self.path, self.name)
-
-        if os.path.isdir(source_path):
-            source_filename = os.path.join(source_path, '__init__.py')
-            if os.path.exists(source_filename):
-                pass
-        else:
-            source_filename = source_filename + '.py'
-
-        source = self.get_source(source_filename)
-        ipdb.set_trace()
-        return self.source_to_code(source)
+    def get_filename(self, fullname):
+        if fullname == 'packyou.github.reverse_shell.routersploit':
+            ipdb.set_trace()
+        parent = '{0}.'.format(self.path.split('packyou/')[2].replace('/', '.'))
+        pre_filename = os.path.join(self.path, fullname.split(parent)[1].replace('.', '/'))
+        filename = os.path.join(pre_filename, '__init__.py')
+        if not os.path.exists(filename):
+            filename = '{0}.py'.format(pre_filename)
+            if not os.path.exists(filename):
+                ipdb.set_trace()
+                raise ImportError('Filename {0} not found.'.format(filename))
+        print('get filename ', filename)
+        return filename
 
     def load_module(self, fullname):
         """
@@ -64,7 +59,13 @@ class GithubLoader(FileLoader):
             When the project is not locally stored it will clone the
             repo from github.
         """
-        print(fullname)
+        print('LOAD', fullname)
+        try:
+            super().load_module(fullname)
+        except Exception as ex:
+            print('EX ->', ex)
+            ipdb.set_trace()
+
         if fullname in sys.modules:
             return sys.modules[fullname]
 
@@ -86,10 +87,12 @@ class GithubLoader(FileLoader):
                 username_directory = os.path.join(MODULES_PATH, 'github', username)
                 if not os.path.exists(username_directory):
                     os.mkdir(username_directory)
+                    init_filename = os.path.join(repository_local_destination, '__init__.py')
+                    open(init_filename, 'a').close()
                 return super().load_module(fullname)
             if len(splitted_names) >= 4:
-                module =  super().load_module(fullname)
                 ipdb.set_trace()
+                module =  super().load_module(fullname)
                 return module
 
         else:
@@ -107,7 +110,6 @@ class GithubFinder(GithubFinderAbc):
     def find_module_in_cloned_repos(self, fullname):
         for root, subdirs, files in os.walk(GITHUB_REPOSITORIES_DIRECTORY):
             current_dir = os.path.split(root)[-1]
-            print(current_dir)
             if current_dir in ['__pycache__', '.git']:
                 continue
             if os.path.isdir(root):
@@ -118,8 +120,8 @@ class GithubFinder(GithubFinderAbc):
                 return loader.load_module(fullname)
 
     def find_spec(self, fullname, path, target=None):
-        print(fullname)
-        print(path)
+        print('SPEC', fullname)
+        print('PATH', path)
         repo_url = None
         if fullname.startswith('packyou.github.'):
 
@@ -142,7 +144,10 @@ class GithubFinder(GithubFinderAbc):
             # we are in the case of relative imports.
             # all the meta_path finders were already executed.
             # we need to search in the repos path for the specified module
-            self.find_module_in_cloned_repos(fullname)
+            print('Search in cloned repos')
+            found_in_cloned_repos = self.find_module_in_cloned_repos(fullname)
+            print('Found result ', found_in_cloned_repos)
+            return found_in_cloned_repos
 
 
-sys.meta_path.append(GithubFinder())
+sys.meta_path = [GithubFinder()] + sys.meta_path
