@@ -12,6 +12,7 @@ with open('HISTORY.rst') as history_file:
 REQUIREMENTS = [
     'gitpython',
     'requests',
+    'requests_cache',
 ]
 
 TEST_REQUIREMENTS = [
