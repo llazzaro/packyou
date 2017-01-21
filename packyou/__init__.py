@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import imp
 import sys
-import pdb
 
 from sys import modules, path, meta_path
 from os import walk, mkdir
@@ -42,9 +41,13 @@ class GithubLoader(object):
             When the module could not be found it will raise ImportError
         """
         print('loading module', fullname)
-
+        parent, _, module_name = fullname.rpartition('.')
         if fullname in modules:
             return modules[fullname]
+
+        if module_name in modules:
+            return modules[module_name]
+
         module = modules.setdefault(fullname, imp.new_module(fullname))
         if len(fullname.strip('.')) > 3:
             absolute_from_root = fullname.split('.', 3)[-1]
@@ -166,6 +169,17 @@ class GithubFinder(object):
             the import uses packyou
         """
         print('Finding ', fullname)
+        partent, _, module_name = fullname.rpartition('.')
+        try:
+            # sometimes the project imported from github does an
+            # "import x", this translates to import github...x
+            # we try first to do an import x first and return None
+            # to let other python finders in the meta_path to do the import
+            module_info = imp.find_module(module_name)
+            return None
+        except ImportError:
+            module = None
+
         if 'packyou.github' in fullname:
             fullname_parts = fullname.split('.')
             repo_url = None
