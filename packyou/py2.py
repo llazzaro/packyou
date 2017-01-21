@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import imp
 import sys
+import logging
 
 from sys import modules, path, meta_path
 from os import walk, mkdir
@@ -20,6 +21,7 @@ from git import Repo
 from packyou.utils import get_filename, get_source
 
 MODULES_PATH = dirname(abspath(__file__))
+LOGGER = logging.getLogger(__name__)
 
 
 class GithubLoader(object):
@@ -40,7 +42,7 @@ class GithubLoader(object):
             if found.
             When the module could not be found it will raise ImportError
         """
-        print('loading module', fullname)
+        LOGGER.info('loading module {0}'.format(fullname))
         parent, _, module_name = fullname.rpartition('.')
         if fullname in modules:
             return modules[fullname]
@@ -67,7 +69,7 @@ class GithubLoader(object):
             module.__package__ = fullname.rpartition('.')[0]
 
         try:
-            print('loading file ', get_filename(fullname))
+            LOGGER.info('loading file {0}'.format(get_filename(fullname)))
             source = get_source(fullname)
         except IOError:
             # fall back to absolute import
@@ -76,12 +78,12 @@ class GithubLoader(object):
                 raise ImportError('File not found {0}'.format(get_filename(fullname)))
             if absolute_name in modules:
                 return modules[absolute_name]
-                print('absolute name', absolute_name)
+                LOGGER.info('absolute name {0}'.format(absolute_name))
             if absolute_from_root in modules:
-                print('absolute root', absolute_from_root)
+                LOGGER.info('absolute root {0}'.format(absolute_from_root))
                 return modules[absolute_from_root]
 
-        print('exec ', module.__package__)
+        LOGGER.info('exec {0}'.format(module.__package__))
         exec(source, module.__dict__)
         return module
 
@@ -168,7 +170,7 @@ class GithubFinder(object):
             Finds a module and returns a module loader when
             the import uses packyou
         """
-        print('Finding ', fullname)
+        LOGGER.info('Finding {0}'.format(fullname))
         partent, _, module_name = fullname.rpartition('.')
         try:
             # sometimes the project imported from github does an
