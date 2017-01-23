@@ -3,6 +3,7 @@ import imp
 import logging
 import ipdb
 
+import sys
 from sys import modules, meta_path
 from os import mkdir
 from os.path import (
@@ -17,6 +18,7 @@ import encodings.idna
 import requests
 
 from git import Repo
+from packyou import find_module_in_cloned_repos, find_module_path_in_cloned_repos
 from packyou.utils import walklevel
 
 MODULES_PATH = dirname(abspath(__file__))
@@ -27,11 +29,11 @@ class GithubLoader(object):
     """
         Import hook that will allow to import from a  github repo.
     """
-    def __init__(self, repo_url=None, path=None):
+    def __init__(self, repo_url=None, path=None, username=None, repository_name=None):
         self.path = path
         self.repo_url = repo_url
-        self.username = None
-        self.repository_name = None
+        self.username = username
+        self.repository_name = repository_name
 
     def check_root(self, fullname):
         """
@@ -50,7 +52,6 @@ class GithubLoader(object):
 
             for root, dirs, files in walklevel(cloned_root, level=1):
                 pass
-
 
     def get_source(self, fullname):
         filename = self.get_filename(fullname)
@@ -76,29 +77,12 @@ class GithubLoader(object):
                     module_filename = '{0}.py'.format(fullname.rpartition('.')[0].rpartition('.')[2])
                     if exists(module_filename):
                         filename = module_filename
-        LOGGER.info('get_filename({0}) is {1}'.format(fullname, filename))
+        LOGGER.debug('get_filename({0}) is {1}'.format(fullname, filename))
         return filename
 
     def is_package(self, fullname):
         filename = self.get_filename(fullname)
         return not exists(filename) or isdir(filename)
-
-    def clean_fullname(self, fullname):
-        """
-            Returns the module or the package.
-            It removed the class, function, etc from fullname
-        """
-        ipdb.set_trace()
-        path = join(self.path[0], fullname.replace('packyou.', '').replace('.', '/'))
-        if exists(path) or exists('{0}.py'.format(path)):
-            # package import
-            return fullname
-
-        parent, _, module_name = fullname.rpartition('.')
-
-        path = join(self.path[0], parent.replace('packyou.', '').replace('.', '/'))
-        if exists(path) or exists('{0}.py'.format(path)):
-            return parent
 
     def get_or_create_module(self, fullname):
         """
@@ -106,12 +90,10 @@ class GithubLoader(object):
             if found.
             When the module could not be found it will raise ImportError
         """
-        LOGGER.info('loading module {0}'.format(fullname))
-        if fullname == 'packyou.github.sqlmapproject.sqlmap.lib.utils.lib.core.enums.HASH':
-            ipdb.set_trace()
-            self.clean_fullname(fullname)
+        LOGGER.info('Loading module {0}'.format(fullname))
         parent, _, module_name = fullname.rpartition('.')
         if fullname in modules:
+            LOGGER.info('Found cache entry for {0}'.format(fullname))
             return modules[fullname]
 
         if module_name in modules:
@@ -126,6 +108,7 @@ class GithubLoader(object):
             modules[fullname.split('.')[-1]] = module
         # required by PEP 302
         module.__file__ = self.get_filename(fullname)
+        LOGGER.info('Created module {0} with fullname {1}'.format(self.get_filename(fullname), fullname))
         module.__name__ = fullname
         module.__loader__ = self
         module.__path__ = self.path
@@ -135,22 +118,8 @@ class GithubLoader(object):
         else:
             module.__package__ = fullname.rpartition('.')[0]
 
-        try:
-            LOGGER.info('loading file {0}'.format(self.get_filename(fullname)))
-            source = self.get_source(fullname)
-        except IOError:
-            # fall back to absolute import
-            absolute_name = fullname.split('.')[-1]
-            if absolute_name not in modules and absolute_from_root not in modules:
-                raise ImportError('File not found {0}'.format(self.get_filename(fullname)))
-            if absolute_name in modules:
-                return modules[absolute_name]
-                LOGGER.info('absolute name {0}'.format(absolute_name))
-            if absolute_from_root in modules:
-                LOGGER.info('absolute root {0}'.format(absolute_from_root))
-                return modules[absolute_from_root]
-
-        LOGGER.info('exec {0}'.format(module.__package__))
+        LOGGER.debug('loading file {0}'.format(self.get_filename(fullname)))
+        source = self.get_source(fullname)
         try:
             exec(source, module.__dict__)
         except Exception as ex:
@@ -161,47 +130,67 @@ class GithubLoader(object):
         """
             Clones a github repo with a username and repository_name
         """
+        if not (self.username and self.repository_name):
+            return
         repository_local_destination = join(MODULES_PATH, 'github', self.username, self.repository_name)
         if not exists(repository_local_destination):
             Repo.clone_from(self.repo_url, repository_local_destination, branch='master')
             init_filename = join(repository_local_destination, '__init__.py')
             open(init_filename, 'a').close()
 
-    def load_module(self, name):
+    @property
+    def project_fullname(self):
+        return 'packyou.github.{0}.{1}'.format(self.username, self.repository_name)
+
+    def absolute_import(self, fullname):
+        _, _, module_name = fullname.rpartition('.')
+        if not(self.username and self.repository_name):
+            return
+        if fullname == self.project_fullname:
+            return
+        for path in self.path:
+            absolute_path = join(path, module_name)
+            if exists(absolute_path) or exists(join(absolute_path, '__init__.py')):
+                fullname = '{0}.{1}'.format(self.project_fullname, module_name)
+                LOGGER.info('Finder found absolute import {0}'.format(fullname))
+                return self.get_or_create_module(fullname)
+
+            absolute_path = path
+            if exists(absolute_path) or exists(join(absolute_path, '__init__.py')):
+                fullname = '{0}'.format(self.project_fullname)
+                LOGGER.info('Finder found absolute import {0}'.format(fullname))
+                return self.get_or_create_module(fullname)
+
+    def load_module(self, fullname):
         """
             Given a name it will load the module from github.
             When the project is not locally stored it will clone the
             repo from github.
         """
-        complete_name = name
-        splitted_names = name.split('.')
-        name = splitted_names[-1]
+        module = None
+        splitted_names = fullname.split('.')
+        module_name = splitted_names[-1]
+#        if not(self.username and self.repository_name):
+#            sys.path.append('/home/leonardo/visible/packyou/packyou/github/sqlmapproject/sqlmap')
         if 'github' in splitted_names:
-            if len(splitted_names) >= 3:
-                self.username = splitted_names[splitted_names.index('github') + 1]
-            if len(splitted_names) >= 4:
-                self.repository_name = splitted_names[splitted_names.index('github') + 2]
-
-            if self.username and self.repository_name:
-                self.clone_github_repo()
+            #module = self.absolute_import(fullname)
+            #if module:
+            #    modules[fullname] = module
+            #    return module
+            self.clone_github_repo()
             if len(splitted_names) == 2:
-                return self.get_or_create_module(complete_name)
+                module = self.get_or_create_module(fullname)
             if len(splitted_names) == 3:
                 username_directory = join(MODULES_PATH, 'github', self.username)
                 if not exists(username_directory):
                     mkdir(username_directory)
                 username_init_filename = join(MODULES_PATH, 'github', self.username, '__init__.py')
                 open(username_init_filename, 'a').close()
-                return self.get_or_create_module(complete_name)
+                module = self.get_or_create_module(fullname)
             if len(splitted_names) >= 4:
-                return self.get_or_create_module(complete_name)
-
-        else:
-            # Here we try to load a module that has a relative import.
-            module = self.get_or_create_module(complete_name)
-            if not module:
-                raise ImportError
-            return module
+                module = self.get_or_create_module(fullname)
+        modules[fullname] = module
+        return module
 
 
 class GithubFinder(object):
@@ -233,31 +222,53 @@ class GithubFinder(object):
 
         return repo_url
 
+    def find_module_in_cloned_repos(self, fullname):
+        return find_module_in_cloned_repos(fullname, GithubLoader)
+
     def find_module(self, fullname, path=None):
         """
             Finds a module and returns a module loader when
             the import uses packyou
         """
+        current_path = dirname(abspath(__file__))
+        path = [current_path]
         LOGGER.info('Finding {0}'.format(fullname))
         partent, _, module_name = fullname.rpartition('.')
         try:
             # sometimes the project imported from github does an
-            # "import x", this translates to import github...x
-            # we try first to do an import x first and return None
-            # to let other python finders in the meta_path to do the import
-            module_info = imp.find_module(module_name)
+            # "import x" (absolute import), this translates to import github...x
+            # we try first to do an import x and cache the module in the sys.path.
+            # and return None if the imp.find_module was successful.
+            # This will allow python finders in the meta_path to do the import, and not packyou
+            # loaders.
+            imp.find_module(module_name)
+            LOGGER.debug('Absolute import: {0}. Original fullname {1}'.format(module_name, fullname))
             return None
-        except ImportError:
-            module = None
+        except ImportError as ex:
+            LOGGER.debug('imp.find_module could not find {0}. this is ussually fine.'.format(module_name))
 
         if 'packyou.github' in fullname:
             fullname_parts = fullname.split('.')
             repo_url = None
-            if len(fullname_parts) >= 4:
+            username = None
+            repository_name = None
+            if len(fullname_parts) >= 3:
                 username = fullname.split('.')[2]
+            if len(fullname_parts) >= 4:
                 repository_name = fullname.split('.')[3]
                 repo_url = self.check_repository_available(username, repository_name)
-            return GithubLoader(repo_url, path)
+                current_path = dirname(abspath(__file__))
+
+                repo_path = join(current_path, 'github', username, repository_name)
+                if repo_path not in path:
+                    path.insert(0, repo_path)
+            path = find_module_path_in_cloned_repos(fullname)
+            LOGGER.debug('Found {0} with path {1}'.format(fullname, path))
+            return GithubLoader(repo_url, path, username, repository_name)
+        else:
+            loader = self.find_module_in_cloned_repos(fullname)
+            LOGGER.debug('Fullname {0} does not start with packyou, searching in cloned repos. Result was {1}'.format(fullname, loader))
+            return loader
 
 
 meta_path.append(GithubFinder())

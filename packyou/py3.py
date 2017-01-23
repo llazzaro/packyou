@@ -6,9 +6,12 @@ import ipdb
 
 from importlib.abc import SourceLoader
 
+import requests
 from git import Repo
 
 from importlib.abc import MetaPathFinder
+
+from packyou import find_module_in_cloned_report
 
 
 MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -53,7 +56,6 @@ class GithubFinderAbc(MetaPathFinder):
             raise ImportError('Github repository not found.')
 
         return repo_url
-
 
 
 class GithubLoader(SourceLoader):
@@ -121,7 +123,7 @@ class GithubLoader(SourceLoader):
                     open(init_filename, 'a').close()
                 return super().load_module(fullname)
             if len(splitted_names) >= 4:
-                module =  super().load_module(fullname)
+                module = super().load_module(fullname)
                 parent, _, current_module = fullname.rpartition('.')
                 root_modules = [
                     'packyou.github.{0}.{1}'.format(self.username, self.repository_name),
@@ -147,27 +149,7 @@ class GithubFinder(GithubFinderAbc):
         Import hook that will allow to import from the specific loader.
     """
     def find_module_in_cloned_repos(self, fullname):
-        splitted_fullname = fullname.split('.')
-        for root, subdirs, files in os.walk(GITHUB_REPOSITORIES_DIRECTORY):
-            current_dir = os.path.split(root)[-1]
-            if current_dir in ['__pycache__', '.git']:
-                continue
-            if os.path.isdir(root):
-                if splitted_fullname[0] == current_dir:
-                    splitted_fullname.pop(0)
-
-            if len(splitted_fullname) == 1:
-                for filename in files:
-                    if '{0}.py'.format(splitted_fullname[0]) == filename:
-                        LOGGER.info('print found module as module {0}, {1}'.format(fullname, root))
-                        loader = GithubLoader(fullname, [root])
-                        return loader.load_module(fullname)
-
-            if not splitted_fullname:
-                # check if the module is here or more deep
-                LOGGER.info('print found module as package {0}, {1}'.format(fullname, root))
-                loader = GithubLoader(fullname, [root])
-                return loader.load_module(fullname)
+        return find_module_in_cloned_report(fullname, GithubLoader)
 
     def find_spec(self, fullname, paths, target=None):
         LOGGER.info('Loading Spec -> {0}'.format(fullname))

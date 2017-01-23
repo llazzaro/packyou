@@ -9,6 +9,7 @@ from git import RemoteProgress
 MODULES_PATH = dirname(abspath(__file__))
 LOGGER = logging.getLogger(__name__)
 
+
 class TQDMCloneProgress(RemoteProgress):
 
     def __init__(self):
