@@ -1,11 +1,13 @@
-import pdb
-from os.path import isdir, join, dirname, abspath
+import os
+import ipdb
+import logging
+from os.path import isdir, join, dirname, abspath, exists
 
 from tqdm import tqdm
 from git import RemoteProgress
 
 MODULES_PATH = dirname(abspath(__file__))
-
+LOGGER = logging.getLogger(__name__)
 
 class TQDMCloneProgress(RemoteProgress):
 
@@ -20,23 +22,12 @@ class TQDMCloneProgress(RemoteProgress):
         update(n=cur_count)
 
 
-def get_filename(fullname):
-    fullname_parts = fullname.split('.')[1:]
-    filename = join(MODULES_PATH, '/'.join(fullname_parts))
-    if isdir(filename):
-        filename = join(filename, '__init__.py')
-    else:
-        if not filename.endswith('py'):
-            filename = '{0}.py'.format(filename)
-    return filename
-
-
-def get_source(fullname):
-    filename = get_filename(fullname)
-    with open(filename, 'r') as source_file:
-        return source_file.read()
-
-
-def get_code(fullname):
-    source = get_source(fullname)
-    return compile(source, get_filename(fullname), 'exec', dont_inherit=True)
+def walklevel(some_dir, level=1):
+    some_dir = some_dir.rstrip(os.path.sep)
+    assert os.path.isdir(some_dir)
+    num_sep = some_dir.count(os.path.sep)
+    for root, dirs, files in os.walk(some_dir):
+        yield root, dirs, files
+        num_sep_this = root.count(os.path.sep)
+        if num_sep + level <= num_sep_this:
+            del dirs[:]
