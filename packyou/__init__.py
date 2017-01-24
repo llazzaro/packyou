@@ -1,3 +1,5 @@
+import sys
+import logging
 from os import walk
 from os.path import (
     abspath,
@@ -6,14 +8,13 @@ from os.path import (
     split,
     isdir
 )
-import sys
-import logging
 
 import requests_cache
 
 # requests_cache.install_cache('packyou_cache')
 MODULES_PATH = dirname(abspath(__file__))
 GITHUB_REPOSITORIES_DIRECTORY = join(MODULES_PATH, 'github')
+LOGGER = logging.getLogger(__name__)
 
 
 def init_logging(level=None):
@@ -29,7 +30,7 @@ def init_logging(level=None):
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
@@ -50,13 +51,13 @@ def find_module_path_in_cloned_repos(fullname):
         if isdir(root):
             if splitted_fullname[0] == current_dir:
                 splitted_fullname.pop(0)
-                print('POP -> ', splitted_fullname)
+                LOGGER.info('POP -> {0}'.format(splitted_fullname))
 
         if len(splitted_fullname) == 1:
             for filename in files:
                 if '{0}.py'.format(splitted_fullname[0]) == filename:
-                    print('found ->', filename)
-                    print('root ->', root)
+                    LOGGER.info('found -> {0}'.format(filename))
+                    LOGGER.info('root -> {0}'.format(root))
                     return [root], None
 
         if not splitted_fullname:
@@ -66,11 +67,6 @@ def find_module_path_in_cloned_repos(fullname):
     remaining = '.'.join(splitted_fullname)
     return [], remaining
 
-
-def find_module_in_cloned_repos(fullname, loader_class):
-    path, _ = find_module_path_in_cloned_repos(fullname)
-    loader = loader_class(fullname, path)
-    return loader.load_module(fullname)
 
 if (sys.version_info > (3, 0)):
     # Python 3

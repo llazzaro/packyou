@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import imp
-import logging
 import ipdb
+import logging
 
 from sys import modules, meta_path
 from os import mkdir
@@ -17,8 +17,8 @@ import encodings.idna
 import requests
 
 from git import Repo
-from packyou import find_module_in_cloned_repos, find_module_path_in_cloned_repos
-from packyou.utils import walklevel
+from packyou import find_module_path_in_cloned_repos
+from packyou.utils import walklevel, memoize
 
 MODULES_PATH = dirname(abspath(__file__))
 LOGGER = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class GithubLoader(object):
     def get_filename(self, fullname):
         parent, _, current_module = fullname.rpartition('.')
         filename = None
-        LOGGER.info('Fullname {0} self.path {1}'.format(fullname, self.path))
+        LOGGER.debug('Fullname {0} self.path {1}'.format(fullname, self.path))
         for path in self.path:
             package_path = join(path, '__init__.py')
             if exists(package_path):
@@ -73,15 +73,12 @@ class GithubLoader(object):
             if exists(module_path):
                 filename = module_path
 
-        LOGGER.info('get_filename({0}) is {1}'.format(fullname, filename))
+        LOGGER.debug('get_filename({0}) is {1}'.format(fullname, filename))
         return filename
 
     def is_package(self, fullname):
         filename = self.get_filename(fullname)
-        try:
-            return not exists(filename) or isdir(filename)
-        except Exception as ex:
-            ipdb.set_trace()
+        return not exists(filename) or isdir(filename)
 
     def get_or_create_module(self, fullname):
         """
@@ -174,6 +171,11 @@ class GithubLoader(object):
 
 class GithubFinder(object):
 
+    def __init__(self):
+        self.username = None
+        self.repository_name = None
+
+    @memoize
     def check_repository_available(self, username, repository_name):
         """
             Sometimes github has a - in the username or repository name.
@@ -212,7 +214,7 @@ class GithubFinder(object):
         LOGGER.info('Finding {0}'.format(fullname))
         partent, _, module_name = fullname.rpartition('.')
         path, _ = find_module_path_in_cloned_repos(fullname)
-        print('FOUND PATH', path)
+        LOGGER.debug('FOUND PATH {0}'.format(path))
         try:
             # sometimes the project imported from github does an
             # "import x" (absolute import), this translates to import github...x
@@ -230,24 +232,24 @@ class GithubFinder(object):
         if 'packyou.github' in fullname:
             fullname_parts = fullname.split('.')
             repo_url = None
-            username = None
-            repository_name = None
             if len(fullname_parts) >= 3:
-                username = fullname.split('.')[2]
+                self.username = fullname.split('.')[2]
             if len(fullname_parts) >= 4:
-                repository_name = fullname.split('.')[3]
-                repo_url = self.check_repository_available(username, repository_name)
+                if not self.repository_name:
+                    LOGGER.debug('FULLNAME -> {0} '.format(fullname))
+                    self.repository_name = fullname.split('.')[3]
+                repo_url = self.check_repository_available(self.username, self.repository_name)
                 current_path = dirname(abspath(__file__))
 
-                repo_path = join(current_path, 'github', username, repository_name)
+                repo_path = join(current_path, 'github', self.username, self.repository_name)
                 if repo_path not in path:
                     path.insert(0, repo_path)
             LOGGER.info('Found {0} with path {1}'.format(fullname, path))
-            return GithubLoader(repo_url, path, username, repository_name)
-        else:
-            loader = self.find_module_in_cloned_repos(fullname)
-            LOGGER.info('Fullname {0} does not start with packyou, searching in cloned repos. Result was {1}'.format(fullname, loader))
-            return loader
-
+            return GithubLoader(repo_url, path, self.username, self.repository_name)
+        elif self.username and self.repository_name and path:
+            LOGGER.info('Fullname {0} does not start with packyou, searching in cloned repos. Result was {1}'.format(fullname, path))
+            repo_url = self.check_repository_available(self.username, self.repository_name)
+            return GithubLoader(repo_url, path, self.username, self.repository_name)
+        LOGGER.info('Not found -> {0}'.format(fullname))
 
 meta_path.append(GithubFinder())
