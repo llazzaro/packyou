@@ -11,7 +11,7 @@ import logging
 
 import requests_cache
 
-requests_cache.install_cache('packyou_cache')
+# requests_cache.install_cache('packyou_cache')
 MODULES_PATH = dirname(abspath(__file__))
 GITHUB_REPOSITORIES_DIRECTORY = join(MODULES_PATH, 'github')
 

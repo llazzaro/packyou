@@ -63,26 +63,26 @@ class GithubLoader(object):
         return compile(source, self.get_filename(fullname), 'exec', dont_inherit=True)
 
     def get_filename(self, fullname):
-        fullname_parts = fullname.split('.')[1:]
-        filename = join(MODULES_PATH, '/'.join(fullname_parts))
-        if isdir(filename):
-            filename = join(filename, '__init__.py')
-        else:
-            if not filename.endswith('py'):
-                module_filename = '{0}.py'.format(filename)
-                if exists(module_filename):
-                    filename = module_filename
-                else:
-                    # it could be that it was an import of a class
-                    module_filename = '{0}.py'.format(fullname.rpartition('.')[0].rpartition('.')[2])
-                    if exists(module_filename):
-                        filename = module_filename
-        LOGGER.debug('get_filename({0}) is {1}'.format(fullname, filename))
+        parent, _, current_module = fullname.rpartition('.')
+        filename = None
+        LOGGER.info('Fullname {0} self.path {1}'.format(fullname, self.path))
+        for path in self.path:
+            package_path = join(path, current_module, '__init__.py')
+            if exists(package_path):
+                filename = package_path
+            module_path = '{0}.py'.format(join(path, current_module))
+            if exists(module_path):
+                filename = module_path
+
+        LOGGER.info('get_filename({0}) is {1}'.format(fullname, filename))
         return filename
 
     def is_package(self, fullname):
         filename = self.get_filename(fullname)
-        return not exists(filename) or isdir(filename)
+        try:
+            return not exists(filename) or isdir(filename)
+        except Exception as ex:
+            ipdb.set_trace()
 
     def get_or_create_module(self, fullname):
         """
@@ -242,7 +242,7 @@ class GithubFinder(object):
             # This will allow python finders in the meta_path to do the import, and not packyou
             # loaders.
             imp.find_module(module_name)
-            LOGGER.debug('Absolute import: {0}. Original fullname {1}'.format(module_name, fullname))
+            LOGGER.info('Absolute import: {0}. Original fullname {1}'.format(module_name, fullname))
             return None
         except ImportError as ex:
             LOGGER.debug('imp.find_module could not find {0}. this is ussually fine.'.format(module_name))
