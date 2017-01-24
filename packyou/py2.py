@@ -3,7 +3,6 @@ import imp
 import logging
 import ipdb
 
-import sys
 from sys import modules, meta_path
 from os import mkdir
 from os.path import (
@@ -67,7 +66,7 @@ class GithubLoader(object):
         filename = None
         LOGGER.info('Fullname {0} self.path {1}'.format(fullname, self.path))
         for path in self.path:
-            package_path = join(path, current_module, '__init__.py')
+            package_path = join(path, '__init__.py')
             if exists(package_path):
                 filename = package_path
             module_path = '{0}.py'.format(join(path, current_module))
@@ -95,9 +94,6 @@ class GithubLoader(object):
         if fullname in modules:
             LOGGER.info('Found cache entry for {0}'.format(fullname))
             return modules[fullname]
-
-        if module_name in modules:
-            return modules[module_name]
 
         module = modules.setdefault(fullname, imp.new_module(fullname))
         if len(fullname.strip('.')) > 3:
@@ -142,25 +138,6 @@ class GithubLoader(object):
     def project_fullname(self):
         return 'packyou.github.{0}.{1}'.format(self.username, self.repository_name)
 
-    def absolute_import(self, fullname):
-        _, _, module_name = fullname.rpartition('.')
-        if not(self.username and self.repository_name):
-            return
-        if fullname == self.project_fullname:
-            return
-        for path in self.path:
-            absolute_path = join(path, module_name)
-            if exists(absolute_path) or exists(join(absolute_path, '__init__.py')):
-                fullname = '{0}.{1}'.format(self.project_fullname, module_name)
-                LOGGER.info('Finder found absolute import {0}'.format(fullname))
-                return self.get_or_create_module(fullname)
-
-            absolute_path = path
-            if exists(absolute_path) or exists(join(absolute_path, '__init__.py')):
-                fullname = '{0}'.format(self.project_fullname)
-                LOGGER.info('Finder found absolute import {0}'.format(fullname))
-                return self.get_or_create_module(fullname)
-
     def load_module(self, fullname):
         """
             Given a name it will load the module from github.
@@ -169,14 +146,9 @@ class GithubLoader(object):
         """
         module = None
         splitted_names = fullname.split('.')
-        module_name = splitted_names[-1]
-#        if not(self.username and self.repository_name):
-#            sys.path.append('/home/leonardo/visible/packyou/packyou/github/sqlmapproject/sqlmap')
-        if 'github' in splitted_names:
-            #module = self.absolute_import(fullname)
-            #if module:
-            #    modules[fullname] = module
-            #    return module
+        _, _, module_name = fullname.rpartition('.')
+        _, remaining = find_module_path_in_cloned_repos(fullname)
+        if 'github' in splitted_names and not remaining:
             self.clone_github_repo()
             if len(splitted_names) == 2:
                 module = self.get_or_create_module(fullname)
@@ -189,7 +161,14 @@ class GithubLoader(object):
                 module = self.get_or_create_module(fullname)
             if len(splitted_names) >= 4:
                 module = self.get_or_create_module(fullname)
-        modules[fullname] = module
+        elif self.username and self.repository_name:
+            # relative import from project root.
+            fullname = 'packyou.github.{0}.{1}.{2}'.format(self.username, self.repository_name, remaining)
+            module = self.get_or_create_module(fullname)
+        if module:
+            modules[fullname] = module
+            if remaining is not None:
+                modules[remaining] = module
         return module
 
 
@@ -230,10 +209,10 @@ class GithubFinder(object):
             Finds a module and returns a module loader when
             the import uses packyou
         """
-        current_path = dirname(abspath(__file__))
-        path = [current_path]
         LOGGER.info('Finding {0}'.format(fullname))
         partent, _, module_name = fullname.rpartition('.')
+        path, _ = find_module_path_in_cloned_repos(fullname)
+        print('FOUND PATH', path)
         try:
             # sometimes the project imported from github does an
             # "import x" (absolute import), this translates to import github...x
@@ -241,10 +220,11 @@ class GithubFinder(object):
             # and return None if the imp.find_module was successful.
             # This will allow python finders in the meta_path to do the import, and not packyou
             # loaders.
-            imp.find_module(module_name)
-            LOGGER.info('Absolute import: {0}. Original fullname {1}'.format(module_name, fullname))
-            return None
-        except ImportError as ex:
+            if not path:
+                imp.find_module(module_name)
+                LOGGER.info('Absolute import: {0}. Original fullname {1}'.format(module_name, fullname))
+                return None
+        except ImportError:
             LOGGER.debug('imp.find_module could not find {0}. this is ussually fine.'.format(module_name))
 
         if 'packyou.github' in fullname:
@@ -262,12 +242,11 @@ class GithubFinder(object):
                 repo_path = join(current_path, 'github', username, repository_name)
                 if repo_path not in path:
                     path.insert(0, repo_path)
-            path = find_module_path_in_cloned_repos(fullname)
-            LOGGER.debug('Found {0} with path {1}'.format(fullname, path))
+            LOGGER.info('Found {0} with path {1}'.format(fullname, path))
             return GithubLoader(repo_url, path, username, repository_name)
         else:
             loader = self.find_module_in_cloned_repos(fullname)
-            LOGGER.debug('Fullname {0} does not start with packyou, searching in cloned repos. Result was {1}'.format(fullname, loader))
+            LOGGER.info('Fullname {0} does not start with packyou, searching in cloned repos. Result was {1}'.format(fullname, loader))
             return loader
 
 

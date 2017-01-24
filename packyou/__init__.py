@@ -38,6 +38,10 @@ def init_logging(level=None):
     logger.warning('Logging level set to {0}'.format(level))
 
 
+def get_root_path():
+    return dirname(abspath(__file__))
+
+
 def find_module_path_in_cloned_repos(fullname):
     splitted_fullname = fullname.split('.')
     for root, subdirs, files in walk(MODULES_PATH):
@@ -46,19 +50,25 @@ def find_module_path_in_cloned_repos(fullname):
         if isdir(root):
             if splitted_fullname[0] == current_dir:
                 splitted_fullname.pop(0)
+                print('POP -> ', splitted_fullname)
 
         if len(splitted_fullname) == 1:
             for filename in files:
                 if '{0}.py'.format(splitted_fullname[0]) == filename:
-                    return [parent]
+                    print('found ->', filename)
+                    print('root ->', root)
+                    return [root], None
 
         if not splitted_fullname:
             # check if the module is here
-            return [parent]
+            return [root], None
+
+    remaining = '.'.join(splitted_fullname)
+    return [], remaining
 
 
 def find_module_in_cloned_repos(fullname, loader_class):
-    path = find_module_path_in_cloned_repos(fullname)
+    path, _ = find_module_path_in_cloned_repos(fullname)
     loader = loader_class(fullname, path)
     return loader.load_module(fullname)
 
