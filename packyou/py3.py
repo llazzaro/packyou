@@ -11,7 +11,7 @@ from git import Repo
 
 from importlib.abc import MetaPathFinder
 
-from packyou import find_module_in_cloned_report
+from packyou import find_module_path_in_cloned_repos
 
 
 MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -61,10 +61,20 @@ class GithubFinderAbc(MetaPathFinder):
 class GithubLoader(SourceLoader):
 
     def __init__(self, fullname, path, repo_url=None):
+
+        # Get token
+        self.github_token = token = os.environ.get("GITHUB_TOKEN")
+
+        if not token:
+            self.repo_url = repo_url
+
+        else:
+            base = repo_url[len("https://"):]
+            self.repo_url = "https://" + token + ":x-oauth-basic@" + base
+
         self.name = fullname
         if path:
             self.path = path[0]
-        self.repo_url = repo_url
         self.username = None
         self.repository_name = None
         self.root_module = None
@@ -149,7 +159,7 @@ class GithubFinder(GithubFinderAbc):
         Import hook that will allow to import from the specific loader.
     """
     def find_module_in_cloned_repos(self, fullname):
-        return find_module_in_cloned_report(fullname, GithubLoader)
+        return find_module_path_in_cloned_repos(fullname, GithubLoader)
 
     def find_spec(self, fullname, paths, target=None):
         LOGGER.info('Loading Spec -> {0}'.format(fullname))
