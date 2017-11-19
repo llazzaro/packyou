@@ -11,7 +11,7 @@ from git import Repo
 
 from importlib.abc import MetaPathFinder
 
-from packyou import find_module_in_cloned_repos
+from packyou import find_module_path_in_cloned_repos
 
 
 MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -159,7 +159,7 @@ class GithubFinder(GithubFinderAbc):
         Import hook that will allow to import from the specific loader.
     """
     def find_module_in_cloned_repos(self, fullname):
-        return find_module_in_cloned_repos(fullname, GithubLoader)
+        return find_module_path_in_cloned_repos(fullname, GithubLoader)
 
     def find_spec(self, fullname, paths, target=None):
         LOGGER.info('Loading Spec -> {0}'.format(fullname))
