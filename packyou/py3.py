@@ -61,10 +61,20 @@ class GithubFinderAbc(MetaPathFinder):
 class GithubLoader(SourceLoader):
 
     def __init__(self, fullname, path, repo_url=None):
+
+        # Get token
+        self.github_token = token = os.environ.get("GITHUB_TOKEN")
+
+        if not token:
+            self.repo_url = repo_url
+
+        else:
+            base = repo_url[len("https://"):]
+            self.repo_url = "https://" + token + ":x-oauth-basic@" + base
+
         self.name = fullname
         if path:
             self.path = path[0]
-        self.repo_url = repo_url
         self.username = None
         self.repository_name = None
         self.root_module = None
