@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 from pathlib import Path
@@ -31,10 +32,10 @@ def get_root_path():
 
 def find_module_path_in_cloned_repos(fullname):
     splitted_fullname = fullname.split('.')
-    for root, subdirs, files in Path(MODULES_PATH).walk():
-        root_str = str(root)
-        current_dir = root.name
-        if root.is_dir():
+    for root, subdirs, files in os.walk(MODULES_PATH):
+        root_str = root
+        current_dir = os.path.basename(root)
+        if os.path.isdir(root):
             if splitted_fullname[0] == current_dir:
                 splitted_fullname.pop(0)
                 LOGGER.info(f'POP -> {splitted_fullname}')
