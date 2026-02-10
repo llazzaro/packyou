@@ -1,26 +1,24 @@
 import os
-import ipdb
 import logging
-from os.path import isdir, join, dirname, abspath, exists
+from functools import lru_cache
 
 from tqdm import tqdm
 from git import RemoteProgress
 
-MODULES_PATH = dirname(abspath(__file__))
+MODULES_PATH = os.path.dirname(os.path.abspath(__file__))
 LOGGER = logging.getLogger(__name__)
 
 
 class TQDMCloneProgress(RemoteProgress):
 
     def __init__(self):
-        super(TQDMCloneProgress, self).__init__(self)
+        super().__init__()
         self.progress = None
 
     def update(self, op_code, cur_count, max_count=None, message=''):
-        pdb.set_trace()
         if not self.progress:
             self.progress = tqdm(total=max_count)
-        update(n=cur_count)
+        self.progress.update(n=cur_count)
 
 
 def walklevel(some_dir, level=1):

@@ -13,12 +13,10 @@ REQUIREMENTS = [
     'gitpython',
     'requests',
     'tqdm',
-    'requests_cache',
 ]
 
 TEST_REQUIREMENTS = [
     'pytest',
-    'mock',
 ]
 
 setup(
@@ -34,6 +32,7 @@ setup(
                  'packyou'},
     include_package_data=True,
     install_requires=REQUIREMENTS,
+    python_requires='>=3.9',
     license="MIT license",
     zip_safe=False,
     keywords='packyou',
@@ -42,13 +41,12 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
     test_suite='tests',
     tests_require=TEST_REQUIREMENTS,
