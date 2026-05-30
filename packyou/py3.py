@@ -204,8 +204,6 @@ class GithubFinder(GithubFinderAbc):
                 repo_url = self.check_repository_available(
                     username, repository_name,
                 )
-                if not repo_url:
-                    return
             fixed_paths = []
             for path in paths:
                 p = Path(path)

@@ -151,6 +151,81 @@ class TestGithubFinderFindSpec:
         assert result is None
 
 
+    @patch.object(Path, 'exists', return_value=False)
+    @patch('packyou.py3.requests')
+    def test_packyou_github_with_repo(self, mock_requests, mock_exists):
+        """packyou.github.user.repo should return ModuleSpec."""
+        mock_requests.get.return_value = MagicMock(status_code=200)
+
+        finder = GithubFinder()
+        mock_module = MagicMock()
+        with patch.object(
+            GithubLoader, 'load_module',
+            return_value=mock_module,
+        ):
+            result = finder.find_spec(
+                'packyou.github.someuser.somerepo',
+                ['/some/path'],
+            )
+            assert isinstance(result, ModuleSpec)
+            assert result.name == 'packyou.github.someuser.somerepo'
+
+    @patch.object(Path, 'exists', return_value=False)
+    @patch('packyou.py3.requests')
+    def test_packyou_github_returns_none_on_failed_load(
+        self, mock_requests, mock_exists,
+    ):
+        """Should return None when load_module returns None."""
+        mock_requests.get.return_value = MagicMock(status_code=200)
+
+        finder = GithubFinder()
+        with patch.object(
+            GithubLoader, 'load_module', return_value=None,
+        ):
+            result = finder.find_spec(
+                'packyou.github.someuser', ['/some/path'],
+            )
+            assert result is None
+
+    @patch.object(Path, 'exists', return_value=True)
+    @patch('packyou.py3.requests')
+    def test_find_spec_deduplicates_path(
+        self, mock_requests, mock_exists,
+    ):
+        """Should handle path deduplication when p/p.name exists."""
+        mock_requests.get.return_value = MagicMock(status_code=200)
+
+        finder = GithubFinder()
+        mock_module = MagicMock()
+        with patch.object(
+            GithubLoader, 'load_module',
+            return_value=mock_module,
+        ):
+            result = finder.find_spec(
+                'packyou.github.someuser',
+                ['/some/path'],
+            )
+            assert isinstance(result, ModuleSpec)
+
+    def test_non_packyou_cloned_repo_found(self):
+        """Should return ModuleSpec for non-packyou cloned repo."""
+        finder = GithubFinder()
+        mock_module = MagicMock()
+        with patch.object(
+            finder, 'find_module_in_cloned_repos',
+            return_value=(['/cloned/path'], None),
+        ):
+            with patch.object(
+                GithubLoader, 'load_module',
+                return_value=mock_module,
+            ):
+                result = finder.find_spec(
+                    'some.cloned.module', ['/some/path'],
+                )
+                assert isinstance(result, ModuleSpec)
+                assert result.name == 'some.cloned.module'
+
+
 class TestGithubFinderInMetaPath:
 
     def test_finder_registered(self):

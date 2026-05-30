@@ -187,3 +187,37 @@ class TestLoadModule:
                 with patch.object(type(loader).__mro__[1], 'load_module', return_value=mock_module):
                     result = loader.load_module('packyou.github.user.myrepo')
                     assert sys.modules.get('myrepo') is mock_module
+
+    def test_non_github_module_loads_via_super(self):
+        """Loading a non-github module should delegate to super."""
+        with patch.dict(os.environ, {}, clear=True):
+            os.environ.pop('GITHUB_TOKEN', None)
+            loader = GithubLoader(
+                'somelib.utils', ['/path'], None,
+            )
+
+            mock_module = MagicMock()
+            with patch.object(
+                type(loader).__mro__[1], 'load_module',
+                return_value=mock_module,
+            ):
+                result = loader.load_module('somelib.utils')
+                assert result is mock_module
+                assert sys.modules.get('somelib.utils') is mock_module
+
+    def test_non_github_module_raises_on_none(self):
+        """Loading a non-github module should raise ImportError if None."""
+        with patch.dict(os.environ, {}, clear=True):
+            os.environ.pop('GITHUB_TOKEN', None)
+            loader = GithubLoader(
+                'somelib.badmod', ['/path'], None,
+            )
+
+            # Ensure it's not cached from a prior call
+            sys.modules.pop('somelib.badmod', None)
+            with patch.object(
+                type(loader).__mro__[1], 'load_module',
+                return_value=None,
+            ):
+                with pytest.raises(ImportError):
+                    loader.load_module('somelib.badmod')
