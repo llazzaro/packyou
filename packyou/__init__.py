@@ -13,12 +13,15 @@ def init_logging(level=None):
     if not level:
         logger.setLevel(logging.INFO)
     if level == 'warning':
-        logger.setLevel(logging.WARN)
+        logger.setLevel(logging.WARNING)
     fh = logging.FileHandler('packyou.log')
     fh.setLevel(logging.INFO)
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(lineno)d'
+        ' - %(levelname)s - %(message)s'
+    )
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     logger.addHandler(fh)
@@ -34,8 +37,8 @@ def find_module_path_in_cloned_repos(fullname):
     splitted_fullname = fullname.split('.')
     for root, subdirs, files in os.walk(MODULES_PATH):
         root_str = root
-        current_dir = os.path.basename(root)
-        if os.path.isdir(root):
+        current_dir = Path(root).name
+        if Path(root).is_dir():
             if splitted_fullname[0] == current_dir:
                 splitted_fullname.pop(0)
                 LOGGER.info(f'POP -> {splitted_fullname}')

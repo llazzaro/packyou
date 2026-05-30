@@ -1,23 +1,26 @@
 import os
 import sys
 import pytest
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from packyou.py3 import GithubFinder, GithubFinderAbc
+from importlib.machinery import ModuleSpec
+
+from packyou.py3 import GithubFinder, GithubFinderAbc, GithubLoader
 
 
 class TestCheckUsernameAvailable:
 
     @patch('packyou.py3.requests')
     def test_username_exists(self, mock_requests):
-        """Should return None when username is found (200 on first try)."""
+        """Should return URL when username is found (200 on first try)."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_requests.get.return_value = mock_response
 
         finder = GithubFinderAbc()
         result = finder.check_username_available('testuser')
-        assert result is None
+        assert result == 'https://github.com/testuser'
         mock_requests.get.assert_called_once_with('https://github.com/testuser')
 
     @patch('packyou.py3.requests')
@@ -125,14 +128,18 @@ class TestGithubFinderFindSpec:
             mock_find.assert_called_once_with('some.other.module')
             assert result is None
 
+    @patch.object(Path, 'exists', return_value=False)
     @patch('packyou.py3.requests')
-    def test_packyou_github_with_username_only(self, mock_requests):
-        """packyou.github.username should check username availability."""
+    def test_packyou_github_with_username_only(self, mock_requests, mock_exists):
+        """packyou.github.username should return a ModuleSpec when username is available."""
         mock_requests.get.return_value = MagicMock(status_code=200)
 
         finder = GithubFinder()
-        result = finder.find_spec('packyou.github.someuser', ['/some/path'])
-        assert result is None
+        mock_module = MagicMock()
+        with patch.object(GithubLoader, 'load_module', return_value=mock_module):
+            result = finder.find_spec('packyou.github.someuser', ['/some/path'])
+            assert isinstance(result, ModuleSpec)
+            assert result.name == 'packyou.github.someuser'
 
     @patch('packyou.py3.requests')
     def test_packyou_github_returns_none_for_unavailable_user(self, mock_requests):

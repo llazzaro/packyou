@@ -78,7 +78,7 @@ class TestInitLogging:
         logger.handlers = []
         try:
             init_logging(level='warning')
-            assert logger.level == logging.WARN
+            assert logger.level == logging.WARNING
         finally:
             logger.handlers = original_handlers
 
